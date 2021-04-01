@@ -1,5 +1,4 @@
 const express = require('express');
-const app = express();
 const cors = require('cors');
 const bodyParser = require('body-parser');
 require('dotenv').config()
@@ -8,9 +7,9 @@ const ObjectID = require('mongodb').ObjectID;
 
 const port = process.env.PORT || 8000;
 
+const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-
 app.get('/', (req, res) => {
     res.send('Hello World!');
 });
@@ -19,6 +18,8 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 client.connect(err => {
     console.log('error!', err);
+
+    // bookList Database
     const bookCollection = client.db("lighthouse").collection("books");
 
     app.post('/addBook', (req, res) => {
@@ -43,9 +44,24 @@ client.connect(err => {
         .then(document => res.send(document.value))
     })
 
-    // client.close();
-});
+    // Orders Database
+    const orders = client.db("lighthouse").collection("orders");
+    app.post('/addOrder', (req, res) => {
+        const newOrder = req.body;
+        console.log(newOrder);
+        orders.insertOne(newOrder)
+        .then(result => {
+            res.send(result.insertedCount > 0);
+        })
+    })
 
+    app.get('/orders', (req, res) => {
+        orders.find({email: req.query.email})
+        .toArray((err, documents) => {
+            res.send(documents);
+        })
+    })
+});
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
